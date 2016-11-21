@@ -1,0 +1,15 @@
+#!/bin/ksh
+echo -n  "Exercise to compile : "
+read number
+echo  $"Compilation of exercise " $number"... "
+echo -n "cp  EFLib-exo$number.f90 EFLib.f90: "
+cp EFLib-exo$number.f90 EFLib.f90 
+echo "OK"
+echo -n "cp pw2mts-exo$number.f90 pw2mts.f90: "
+cp pw2mts-exo$number.f90 pw2mts.f90
+echo "OK"
+echo -n "make: "
+make
+echo "OK"
+echo "COMPILATION DONE"
+
