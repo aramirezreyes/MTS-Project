@@ -1,12 +1,12 @@
 #FC=ifort  # Compilation
 #LD=ifort  # Linker
-FC=gfortran  # Compilation
-LD=gfortran  # Linker
+FC=gfortran -g -Wall # Compilation
+LD=gfortran  -g -Wall# Linker
 LIBS=  -L./libraries -lsparsekit
 INCLUDE= -I./libraries 
 EXE=pw2mts.exe
 
-OBJS = EFLib.o mod_lec_fic.o pw2mts.o
+OBJS = mod_lec_fic.o EFLib.o  pw2mts.o
 
 all:   $(OBJS) 
 	@echo "Links edition"

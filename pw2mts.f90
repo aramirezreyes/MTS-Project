@@ -1,3 +1,6 @@
+!cccccccccccccccccccccccccc
+!To get lalbel of triangle: mesh%triangles(1,4) gives the label
+!cccccccccccccccccccccccccccccc
 program pw2mts
 
 !cccccccccccccccccccccccccccc
@@ -32,7 +35,7 @@ program pw2mts
 ! LOAD OF THE MESH FROM GMSH
 !ccccccccccccccccccccccccccc
 
-  call load_gmsh('ex1.msh',mesh)
+  call load_gmsh('myMesh.msh',mesh)
 
 
 !cccccccccccccccccccccccccccccccccccccccccccccccccc
