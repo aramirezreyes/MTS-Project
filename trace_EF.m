@@ -1,5 +1,5 @@
 load solution.dat;
-m=load_gmsh('ex1.msh');
+m=load_gmsh('myMesh.msh');
 clf;
 xP=zeros(3,m.nbQuads);
 yP=xP;
