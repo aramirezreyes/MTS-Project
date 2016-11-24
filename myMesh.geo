@@ -42,7 +42,8 @@ Physical Line(000) = {1};
 Physical Line(100) = {2,3,4,5,21,22,23,24};
 Physical Line(200) = {6:20};
 
-Physical Surface(010) = {1,2};
-Physical Surface(020) = {3};
+Physical Surface(010) = {1};
+Physical Surface(020) = {2};
+Physical Surface(030) = {3};
  
 Coherence;

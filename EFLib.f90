@@ -20,11 +20,12 @@ module EFLib
 
   REAL (kind=8), dimension(3,3), intent(out) :: ALOC
   REAL (kind=8), dimension(3), intent(out) :: RHSLOC
-
+  REAL (kind=8), dimension(3,3) :: ALOC_stiff, ALOC_mass
   REAL (kind=8), dimension(2,3) :: GRADPHIREF,GRADPHI
+  REAL (kind=8), dimension(3,3) :: PHIREF
   INTEGER, dimension(3) :: TRI
   REAL (kind=8), dimension(2) :: P1,P2,P3
-  REAL (kind=8) :: x1,x2,x3,y1,y2,y3
+  REAL (kind=8) :: x1,x2,x3,y1,y2,y3,THETA,MU
   INTEGER :: k1,k2,k3
   REAL (kind=8), dimension(2,2) :: MK,MKT,INVMKT
   REAL (kind=8) :: DETMK 
@@ -32,7 +33,9 @@ module EFLib
 ! Reference Stiffness Matrix
 !ccccccccccccccccccccccccccc
   GRADPHIREF=reshape((/-1,-1,1,0,0,1/),(/2,3/))
-
+! Reference mass matrix
+!cccccccccccccccccccccccccccc
+  PHIREF = reshape((/1./12.,1./24.,1./24.,1./24.,1./12.,1./24.,1./24.,1./24.,1./12./),(/3,3/))  
 ! Nodes coordinates
 !cccccccccccccccccc 
 
@@ -43,6 +46,24 @@ module EFLib
    x1=P1(1); y1=P1(2)
    x2=P2(1); y2=P2(2)
    x3=P3(1); y3=P3(2)
+
+!Adjustements of the parameters THETA and MU
+!ccccccccccccccccccccccccccccccccccccccccccc
+   IF ((mesh%triangles(k,4).EQ.030)) then
+      print*, "Area 3"
+      MU = 0.5
+      THETA = 1.4
+   ELSE
+      IF(mesh%triangles(k,4).EQ.010) then
+      print*, "Area 1"
+         THETA = 1
+      ELSE IF(mesh%triangles(k,4).EQ.020) then
+      print*, "Area 2"
+         THETA = 1.2
+      END IF
+      MU = 0
+   END IF
+
 
 ! Computation of MK, MKT, INVMKT
 !cccccccccccccccccccccccccccccccc
@@ -63,18 +84,49 @@ module EFLib
 !ccccccccccccccccc
 
    GRADPHI=MATMUL(INVMKT,GRADPHIREF)
-   ALOC=ABS(DETMK)/2*MATMUL(TRANSPOSE(GRADPHI),GRADPHI)
+   ALOC_stiff=THETA * ABS(DETMK)/2*MATMUL(TRANSPOSE(GRADPHI),GRADPHI)
+   ALOC_mass = MU * ABS(DETMK)*PHIREF
+   
+   ALOC = ALOC_stiff + ALOC_mass
   
 ! RHSLOC Computation
 !cccccccccccccccccccc
-
-   RHSLOC(1)=source(x1,y1)
-   RHSLOC(2)=source(x2,y2)
-   RHSLOC(3)=source(x3,y3)
-   RHSLOC=RHSLOC*ABS(DETMK)/6
+!CC is this approximation correct????????????????????????????????????????????????????????????
+   RHSLOC=-3*MU*ABS(DETMK)/2
    
   end subroutine Compute_LocalStiffness_Matrix_And_LocalRHS
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  subroutine  Compute_Local_Border_Terms(mesh,K,BLOC)
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    IMPLICIT NONE
 
+  type(msh),intent(in) :: mesh
+  INTEGER, intent(in)  :: K !number of border segment
+
+  REAL (kind=8), dimension(2,2), intent(out) :: BLOC
+  REAL (kind=8), dimension(2) :: P1,P2
+  REAL (kind=8) :: x1,x2,y1,y2,MU,e
+  INTEGER, dimension(2) :: SEG
+  INTEGER :: k1,k2,label
+  BLOC=reshape((/2,1,1,2/),(/2,2/))
+  SEG = mesh%lines(K,1:2)
+  k1 = SEG(1); k2 = SEG(2)
+  P1 = mesh%pos(k1,1:2)
+  P2 = mesh%pos(k2,1:2)
+  x1 = P1(1) ; y1 = P1(2) ; x2 = P2(1) ; y2 = P2(2)
+  LABEL = mesh%lines(K,3)
+  IF (LABEL .EQ. 200) THEN
+     MU = 0.5
+  ELSE
+     MU = 0
+  END IF
+  e = SQRT((x2-x1)**2 + (y2-y1)**2)
+  BLOC = (MU*e/12)*BLOC
+  end subroutine Compute_Local_Border_Terms
+
+
+
+  
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
   subroutine Assembling_Global_Stiffness_Matrix_And_RHS(mesh,IND,VAL,NBE,RHS)
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -140,6 +192,8 @@ module EFLib
   END DO
 
 end subroutine Assembling_Global_Stiffness_Matrix_And_RHS
+
+
 
  
 !ccccccccccccccccccccccccccccccccccccccccccccxxxccccccc
@@ -250,18 +304,18 @@ end subroutine Put_In_CSR_Format
         vu(pp2)=k
      end if
   end do
-
+!cccccccccccccccccccccccccc Changes made
  allocate(V1(NN),V2(NN))
   V1=0.0 ; V2=0.0
-  cl=20.
-  Zone_Phys_Bord=1001
+  cl=0.
+  Zone_Phys_Bord=000
   do j=1,mesh%nbLines
      !! Identification of the boundary node to treat
      lig=boundary_nodes(j,1)
      type=boundary_nodes(j,2)
      if (type.eq.Zone_Phys_Bord) then
        val_CL=CL
-     end if
+     
      !! - One multiplies the k-th column of the stiffness matrix by the
      !!  value Tk, and one subtracts it to the nodal forces vector.
      !!   B = B - A*(0,...,0,Tk,0,...0)
@@ -279,6 +333,7 @@ end subroutine Put_In_CSR_Format
        A(IADD)=1.0
      !! - The component Bk is replaced by Tk.
        RHS(LIG)=Val_CL
+    end if !ccccccccccccccccccccccccccccccccccccccccc end of changes made
      end do
 
   deallocate(boundary_nodes,vu,v1,v2)
