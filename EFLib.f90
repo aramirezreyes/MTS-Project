@@ -20,7 +20,7 @@ module EFLib
 
   REAL (kind=8), dimension(3,3), intent(out) :: ALOC
   REAL (kind=8), dimension(3), intent(out) :: RHSLOC
-  REAL (kind=8), dimension(3,3) :: ALOC_stiff, ALOC_mass, ALOC_borderTerm
+  REAL (kind=8), dimension(3,3) :: ALOC_stiff, ALOC_mass
   REAL (kind=8), dimension(2,3) :: GRADPHIREF,GRADPHI
   REAL (kind=8), dimension(3,3) :: PHIREF
   INTEGER, dimension(3) :: TRI
@@ -95,7 +95,38 @@ module EFLib
    RHSLOC=-3*MU*ABS(DETMK)/2
    
   end subroutine Compute_LocalStiffness_Matrix_And_LocalRHS
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+  subroutine  Compute_Local_Border_Terms(mesh,K,BLOC)
+!cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    IMPLICIT NONE
 
+  type(msh),intent(in) :: mesh
+  INTEGER, intent(in)  :: K !number of border segment
+
+  REAL (kind=8), dimension(2,2), intent(out) :: BLOC
+  REAL (kind=8), dimension(2) :: P1,P2
+  REAL (kind=8) :: x1,x2,y1,y2,MU,e
+  INTEGER, dimension(2) :: SEG
+  INTEGER :: k1,k2,label
+  BLOC=reshape((/2,1,1,2/),(/2,2/))
+  SEG = mesh%lines(K,1:2)
+  k1 = SEG(1); k2 = SEG(2)
+  P1 = mesh%pos(k1,1:2)
+  P2 = mesh%pos(k2,1:2)
+  x1 = P1(1) ; y1 = P1(2) ; x2 = P2(1) ; y2 = P2(2)
+  LABEL = mesh%lines(K,3)
+  IF (LABEL .EQ. 200) THEN
+     MU = 0.5
+  ELSE
+     MU = 0
+  END IF
+  e = SQRT((x2-x1)**2 + (y2-y1)**2)
+  BLOC = (MU*e/12)*BLOC
+  end subroutine Compute_Local_Border_Terms
+
+
+
+  
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
   subroutine Assembling_Global_Stiffness_Matrix_And_RHS(mesh,IND,VAL,NBE,RHS)
 !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
